@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
 }
 
 datasource db {
@@ -27,6 +28,7 @@ model RawKeyword {
   name              String           @db.VarChar(20)
   refinedKeyword    RefinedKeyword   @relation(fields: [refined_keyword_id], references: [id])
   refined_keyword_id  Int
+  @@fulltext([name])
   @@map("raw_keywords")
 }
 

@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { pr } from "./prismaClient.js";
 import axios from "axios";
-
-const pr = new PrismaClient({ log: ["query", "error"] });
 
 const groupArr = [
   { num: 1, name: "백엔드", id: 5 },
