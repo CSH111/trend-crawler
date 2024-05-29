@@ -37,15 +37,42 @@ model RefinedKeyword {
   name      String      @db.VarChar(20) @unique
   is_active Int       @db.TinyInt @default(1)
   keywordGroups  RefinedKeywordsOnKeywordGroups[]
+  jobUrls  RefinedKeywordsOnJobUrl[]
   rawKeywords RawKeyword[]
   keywordCounts KeywordCount[]
   @@map("refined_keywords")
+}
+model JobUrl {
+  id        Int      @id @default(autoincrement())
+  url      String      @db.VarChar(50) @unique
+  created_at DateTime @default(now())
+  refinedKeywords RefinedKeywordsOnJobUrl[]
+
+  @@fulltext([url])
+  @@map("job_urls")
+}
+
+model Platform {
+  id         Int      @id @default(autoincrement())
+  name       String      @db.VarChar(20)
+  last_id    String   @db.VarChar(20)
+  updated_at DateTime @default(now())
+  @@map("platforms")
+}
+
+model RefinedKeywordsOnJobUrl{
+  id                    Int                 @id @default(autoincrement())
+  refinedKeyword        RefinedKeyword      @relation(fields: [refined_keyword_id], references: [id])
+  refined_keyword_id    Int
+  jobUrl                JobUrl         @relation(fields: [job_url_id], references: [id])
+  job_url_id            Int
+  @@map("refined_keywords_on_job_url")
 }
 
 model KeywordCount {
   id        Int      @id @default(autoincrement())
   count     Int   @db.Int()
-  createdAt DateTime @default(now())
+  created_at DateTime @default(now())
   refinedKeyword    RefinedKeyword     @relation(fields: [refined_keyword_id], references: [id])
   refined_keyword_id  Int
   @@map("keyword_counts")
