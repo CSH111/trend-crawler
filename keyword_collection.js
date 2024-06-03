@@ -11,11 +11,12 @@ const groupArr = [
 
 const getJobListUrl = (category, page) => {
   return `https://api.jumpit.co.kr/api/positions?jobCategory=${category}&sort=reg_dt&highlight=false&page=${page}`;
+  // return `https://api.jumpit.co.kr/api/positions?sort=reg_dt&highlight=false&page=${page}`;
 };
 
 const result = await Promise.all(
   groupArr.map((groupObj) => {
-    const pages = [1, 2, 3, 4, 5];
+    const pages = [1, 2, 3, 4, 5, 7, 8, 9, 10];
     return Promise.all(
       pages.map((p) => {
         return axios.get(getJobListUrl(groupObj.num, p)).then((res) => {

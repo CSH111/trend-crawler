@@ -2,31 +2,23 @@ import axios from "axios";
 import { pr } from "../../prismaClient.js";
 
 const rawKeywords = await pr.rawKeyword.findMany();
-const platformId = 1;
-const platformData = await pr.platform.findFirst({ where: { id: platformId } });
-const lastId = +platformData.last_id;
-let newLastId;
-const pagesToSearch = Array(10)
-  .fill()
-  .map((_, i) => i + 1);
-// const pagesToSearch = [1, 2];
 
 const makeUrlWithPage = (pageN) => {
   return `https://api.jumpit.co.kr/api/positions?jobCategory=1&jobCategory=2&jobCategory=3&jobCategory=4&jobCategory=16&sort=reg_dt&highlight=false&page=${pageN}`;
 };
 
+const res = await axios.get(makeUrlWithPage(1));
+const jobsCount = res.data.result.totalCount;
+const pagesToSearch = Array(Math.ceil(jobsCount / 16))
+  .fill()
+  .map((_, i) => i + 1);
+
 for (let pageNumber of pagesToSearch) {
   const getListApiUrl = makeUrlWithPage(pageNumber);
   const res = await axios.get(getListApiUrl);
-  const positionDataArr = res.data.result.positions.filter((pd) => {
-    return +pd.id > lastId;
-  });
+  const positionDataArr = res.data.result.positions;
   if (positionDataArr.length < 1) {
     break;
-  }
-
-  if (pageNumber === pagesToSearch[0]) {
-    newLastId = positionDataArr?.[0]?.id;
   }
 
   const countsToAdd = {};
@@ -81,11 +73,15 @@ for (let pageNumber of pagesToSearch) {
           });
           jobId = newJob.id;
         }
-        await pr.refinedKeywordsOnJobUrl.createMany({
-          data: keywordIds.map((kid) => {
-            return { job_url_id: jobId, refined_keyword_id: kid };
-          }),
-        });
+        try {
+          await Promise.all(
+            keywordIds.map((kid) => {
+              return pr.refinedKeywordsOnJobUrl.create({
+                data: { job_url_id: jobId, refined_keyword_id: kid },
+              });
+            })
+          );
+        } catch {}
       })();
     })
   );
@@ -116,13 +112,4 @@ for (let pageNumber of pagesToSearch) {
       })();
     })
   );
-}
-
-if (newLastId) {
-  await pr.platform.update({
-    where: { id: platformId },
-    data: { last_id: String(newLastId), updated_at: new Date() },
-  });
-} else {
-  console.log("no new job!");
 }
