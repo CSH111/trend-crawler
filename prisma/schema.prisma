@@ -66,6 +66,7 @@ model RefinedKeywordsOnJobUrl{
   refined_keyword_id    Int
   jobUrl                JobUrl         @relation(fields: [job_url_id], references: [id])
   job_url_id            Int
+  @@unique([refined_keyword_id,job_url_id])
   @@map("refined_keywords_on_job_url")
 }
 
