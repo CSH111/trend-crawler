@@ -1,51 +1,48 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["fullTextIndex"]
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL") 
+  url      = env("DATABASE_URL")
 }
 
-
-
 model KeywordGroup {
-  id        Int      @id @default(autoincrement())
-  name      String      @db.VarChar(20)
+  id              Int                              @id @default(autoincrement())
+  name            String                           @db.VarChar(20)
   refinedKeywords RefinedKeywordsOnKeywordGroups[]
+
   @@map("keyword_groups")
 }
 
 model RawKeyword {
-  id                Int              @id @default(autoincrement())
-  name              String           @db.VarChar(20)
-  refinedKeyword    RefinedKeyword   @relation(fields: [refined_keyword_id], references: [id])
-  refined_keyword_id  Int
+  id                 Int            @id @default(autoincrement())
+  name               String         @db.VarChar(20)
+  refined_keyword_id Int
+  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+
+  @@index([refined_keyword_id], map: "raw_keywords_refined_keyword_id_fkey")
   @@fulltext([name])
   @@map("raw_keywords")
 }
 
 model RefinedKeyword {
-  id        Int      @id @default(autoincrement())
-  name      String      @db.VarChar(20) @unique
-  is_active Int       @db.TinyInt @default(1)
-  keywordGroups  RefinedKeywordsOnKeywordGroups[]
-  jobUrls  RefinedKeywordsOnJobUrl[]
-  rawKeywords RawKeyword[]
+  id            Int                              @id @default(autoincrement())
+  name          String                           @unique @db.VarChar(20)
+  is_active     Int                              @default(1) @db.TinyInt
   keywordCounts KeywordCount[]
+  rawKeywords   RawKeyword[]
+  jobUrls       RefinedKeywordsOnJobUrl[]
+  keywordGroups RefinedKeywordsOnKeywordGroups[]
+
   @@map("refined_keywords")
 }
+
 model JobUrl {
-  id        Int      @id @default(autoincrement())
-  url      String      @db.VarChar(50) @unique
-  created_at DateTime @default(now())
+  id              Int                       @id @default(autoincrement())
+  url             String                    @unique @db.VarChar(50)
+  created_at      DateTime                  @default(now())
   refinedKeywords RefinedKeywordsOnJobUrl[]
 
   @@fulltext([url])
@@ -54,36 +51,49 @@ model JobUrl {
 
 model Platform {
   id         Int      @id @default(autoincrement())
-  name       String      @db.VarChar(20)
+  name       String   @db.VarChar(20)
   last_id    String   @db.VarChar(20)
   updated_at DateTime @default(now())
+
   @@map("platforms")
 }
 
-model RefinedKeywordsOnJobUrl{
-  id                    Int                 @id @default(autoincrement())
-  refinedKeyword        RefinedKeyword      @relation(fields: [refined_keyword_id], references: [id])
-  refined_keyword_id    Int
-  jobUrl                JobUrl         @relation(fields: [job_url_id], references: [id])
-  job_url_id            Int
-  @@unique([refined_keyword_id,job_url_id])
+model RefinedKeywordsOnJobUrl {
+  id                 Int            @id @default(autoincrement())
+  refined_keyword_id Int
+  job_url_id         Int
+  jobUrl             JobUrl         @relation(fields: [job_url_id], references: [id])
+  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+
+  @@unique([refined_keyword_id, job_url_id])
+  @@index([job_url_id], map: "refined_keywords_on_job_url_job_url_id_fkey")
   @@map("refined_keywords_on_job_url")
 }
 
 model KeywordCount {
-  id        Int      @id @default(autoincrement())
-  count     Int   @db.Int()
-  created_at DateTime @default(now())
-  refinedKeyword    RefinedKeyword     @relation(fields: [refined_keyword_id], references: [id])
-  refined_keyword_id  Int
+  id                 Int            @id @default(autoincrement())
+  count              Int
+  refined_keyword_id Int
+  created_at         DateTime       @default(now())
+  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+
+  @@index([refined_keyword_id], map: "keyword_counts_refined_keyword_id_fkey")
   @@map("keyword_counts")
 }
 
 model RefinedKeywordsOnKeywordGroups {
-  id                    Int                 @id @default(autoincrement())
-  refinedKeyword        RefinedKeyword      @relation(fields: [refined_keyword_id], references: [id])
-  refined_keyword_id      Int
-  keywordGroup          KeywordGroup         @relation(fields: [keyword_group_id], references: [id])
-  keyword_group_id        Int
+  id                 Int            @id @default(autoincrement())
+  refined_keyword_id Int
+  keyword_group_id   Int
+  keywordGroup       KeywordGroup   @relation(fields: [keyword_group_id], references: [id])
+  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+
+  @@index([keyword_group_id], map: "refined_keywords_on_keyword_groups_keyword_group_id_fkey")
+  @@index([refined_keyword_id], map: "refined_keywords_on_keyword_groups_refined_keyword_id_fkey")
   @@map("refined_keywords_on_keyword_groups")
+}
+
+model report_dates {
+  id   Int      @id @default(autoincrement())
+  date DateTime @db.Date
 }

@@ -8,7 +8,7 @@ const makeUrl = (page) => {
 };
 console.time("total");
 // for (let i = 1; true; i++) {
-for (let page = 132; true; page++) {
+for (let page = 1; true; page++) {
   console.log(`page ${page} started`);
   const url = makeUrl(page);
   const result = await axios.get(url);
@@ -21,34 +21,39 @@ for (let page = 132; true; page++) {
     break;
   }
   const targetUrlIds = result.data.data.map((d) => d.id);
-  const rawKeywords = await pr.rawKeyword.findMany();
+  const refinedKeywords = await pr.refinedKeyword.findMany({ include: { rawKeywords: true } });
   const countngObj = {};
   const jobUrlObj = {};
   await Promise.all(
     targetUrlIds.map((urlId) => {
       return (async () => {
         const result = await axios.get(`https://www.wanted.co.kr/wd/${urlId}`);
-        rawKeywords.forEach((k) => {
-          const idx = result.data.indexOf(k.name);
-          if (idx == -1) {
+
+        refinedKeywords.forEach((k) => {
+          const needAdd = k.rawKeywords.some((rk) => {
+            if (result.data.indexOf(rk.name) !== -1) {
+              return true;
+            }
+            return false;
+          });
+          if (!needAdd) {
             return;
           }
-
-          if (!countngObj[k.refined_keyword_id]) {
-            countngObj[k.refined_keyword_id] = 1;
+          if (!countngObj[k.id]) {
+            countngObj[k.id] = 1;
           } else {
-            countngObj[k.refined_keyword_id] += 1;
+            countngObj[k.id] += 1;
           }
           if (!jobUrlObj[urlId]) {
             jobUrlObj[urlId] = new Set();
           }
-          jobUrlObj[urlId].add(k.refined_keyword_id);
+          jobUrlObj[urlId].add(k.id);
         });
       })();
     })
   );
 
-  //create counts
+  // create counts
   await Promise.all(
     Object.entries(countngObj).map(([keywordId, count]) => {
       return (async () => {
