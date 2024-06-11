@@ -16,7 +16,8 @@ const getJobListUrl = (category, page) => {
 
 const result = await Promise.all(
   groupArr.map((groupObj) => {
-    const pages = [1, 2, 3, 4, 5, 7, 8, 9, 10];
+    const pages = [1, 2, 3, 4, 5, 7, 8, 9, 10].map((n) => n + 20);
+    // const pages = [1];
     return Promise.all(
       pages.map((p) => {
         return axios.get(getJobListUrl(groupObj.num, p)).then((res) => {
@@ -51,5 +52,6 @@ try {
   );
 } catch {}
 
+// last 2707
 // const res = await axios.get(jobListUrl);
 // console.log("res.data: ", res.data.result.positions[0].techStacks);

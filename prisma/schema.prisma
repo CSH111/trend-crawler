@@ -8,92 +8,102 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model KeywordGroup {
-  id              Int                              @id @default(autoincrement())
-  name            String                           @db.VarChar(20)
-  refinedKeywords RefinedKeywordsOnKeywordGroups[]
-
-  @@map("keyword_groups")
-}
-
-model RawKeyword {
-  id                 Int            @id @default(autoincrement())
-  name               String         @db.VarChar(20)
-  refined_keyword_id Int
-  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
-
-  @@index([refined_keyword_id], map: "raw_keywords_refined_keyword_id_fkey")
-  @@fulltext([name])
-  @@map("raw_keywords")
-}
-
-model RefinedKeyword {
-  id            Int                              @id @default(autoincrement())
-  name          String                           @unique @db.VarChar(20)
-  is_active     Int                              @default(1) @db.TinyInt
-  keywordCounts KeywordCount[]
-  rawKeywords   RawKeyword[]
-  jobUrls       RefinedKeywordsOnJobUrl[]
-  keywordGroups RefinedKeywordsOnKeywordGroups[]
-
-  @@map("refined_keywords")
-}
-
-model JobUrl {
-  id              Int                       @id @default(autoincrement())
-  url             String                    @unique @db.VarChar(50)
-  created_at      DateTime                  @default(now())
-  refinedKeywords RefinedKeywordsOnJobUrl[]
+model job_urls {
+  id                          Int                           @id @default(autoincrement())
+  url                         String                        @unique @db.VarChar(50)
+  created_at                  DateTime                      @default(now())
+  refined_keywords_on_job_url refined_keywords_on_job_url[]
 
   @@fulltext([url])
-  @@map("job_urls")
 }
 
-model Platform {
+model keyword_counts {
+  id                 Int              @id @default(autoincrement())
+  count              Int
+  refined_keyword_id Int
+  created_at         DateTime         @default(now())
+  refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
+
+  @@index([refined_keyword_id], map: "keyword_counts_refined_keyword_id_fkey")
+}
+
+model keyword_groups {
+  id                                 Int                                  @id @default(autoincrement())
+  name                               String                               @db.VarChar(20)
+  refined_keywords_on_keyword_groups refined_keywords_on_keyword_groups[]
+}
+
+model platforms {
   id         Int      @id @default(autoincrement())
   name       String   @db.VarChar(20)
   last_id    String   @db.VarChar(20)
   updated_at DateTime @default(now())
-
-  @@map("platforms")
 }
 
-model RefinedKeywordsOnJobUrl {
-  id                 Int            @id @default(autoincrement())
+model raw_keywords {
+  id                      Int              @id @default(autoincrement())
+  name                    String           @db.VarChar(20)
+  refined_keyword_id      Int
+  suffix_word_ban         String?          @db.VarChar(20)
+  prefix_word_ban         String?          @db.VarChar(20)
+  no_search_at_html_parse Int              @default(0) @db.TinyInt
+  refined_keywords        refined_keywords @relation(fields: [refined_keyword_id], references: [id])
+
+  @@index([refined_keyword_id], map: "raw_keywords_refined_keyword_id_fkey")
+  @@fulltext([name])
+}
+
+model refined_keywords {
+  id                                 Int                                  @id @default(autoincrement())
+  name                               String                               @unique @db.VarChar(20)
+  is_active                          Int                                  @default(1) @db.TinyInt
+  keyword_counts                     keyword_counts[]
+  raw_keywords                       raw_keywords[]
+  refined_keywords_on_job_url        refined_keywords_on_job_url[]
+  refined_keywords_on_keyword_groups refined_keywords_on_keyword_groups[]
+  refined_keywords_on_wanted_techs   refined_keywords_on_wanted_techs[]
+}
+
+model refined_keywords_on_job_url {
+  id                 Int              @id @default(autoincrement())
   refined_keyword_id Int
   job_url_id         Int
-  jobUrl             JobUrl         @relation(fields: [job_url_id], references: [id])
-  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+  job_urls           job_urls         @relation(fields: [job_url_id], references: [id])
+  refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
 
   @@unique([refined_keyword_id, job_url_id])
   @@index([job_url_id], map: "refined_keywords_on_job_url_job_url_id_fkey")
-  @@map("refined_keywords_on_job_url")
 }
 
-model KeywordCount {
-  id                 Int            @id @default(autoincrement())
-  count              Int
-  refined_keyword_id Int
-  created_at         DateTime       @default(now())
-  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
-
-  @@index([refined_keyword_id], map: "keyword_counts_refined_keyword_id_fkey")
-  @@map("keyword_counts")
-}
-
-model RefinedKeywordsOnKeywordGroups {
-  id                 Int            @id @default(autoincrement())
+model refined_keywords_on_keyword_groups {
+  id                 Int              @id @default(autoincrement())
   refined_keyword_id Int
   keyword_group_id   Int
-  keywordGroup       KeywordGroup   @relation(fields: [keyword_group_id], references: [id])
-  refinedKeyword     RefinedKeyword @relation(fields: [refined_keyword_id], references: [id])
+  keyword_groups     keyword_groups   @relation(fields: [keyword_group_id], references: [id])
+  refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
 
   @@index([keyword_group_id], map: "refined_keywords_on_keyword_groups_keyword_group_id_fkey")
   @@index([refined_keyword_id], map: "refined_keywords_on_keyword_groups_refined_keyword_id_fkey")
-  @@map("refined_keywords_on_keyword_groups")
+}
+
+model refined_keywords_on_wanted_techs {
+  id                 Int               @id @default(autoincrement())
+  wanted_tech_id     Int?
+  refined_keyword_id Int?
+  refined_keywords   refined_keywords? @relation(fields: [refined_keyword_id], references: [id], onDelete: Restrict)
+  wanted_techs       wanted_techs?     @relation(fields: [wanted_tech_id], references: [wanted_tech_id], onDelete: Restrict, map: "refined_keywords_on_wanted_techs_wanted_tech_wanted_tech_id_fkey")
+
+  @@index([refined_keyword_id], map: "refined_keywords_on_wanted_techs_refined_keyword_id_fkey")
+  @@index([wanted_tech_id], map: "refined_keywords_on_wanted_techs_wanted_tech_wanted_tech_id_fkey")
 }
 
 model report_dates {
   id   Int      @id @default(autoincrement())
   date DateTime @db.Date
+}
+
+model wanted_techs {
+  wanted_tech_id                   Int                                @id
+  wanted_name                      String                             @default("") @db.VarChar(50)
+  refined_keywords_on_wanted_techs refined_keywords_on_wanted_techs[]
 }

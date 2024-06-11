@@ -1,6 +1,6 @@
 import { pr } from "./prismaClient.js";
 
-const refinedKeywords = await pr.refinedKeyword.findMany();
+const refinedKeywords = await pr.refinedKeyword.findMany({ where: { id: { gt: 2707 } } });
 const refinedKeywordsObjs = refinedKeywords.map((rfk) => ({
   ...rfk,
   rawKeywords: Array.from(new Set([rfk.name, rfk.name.toUpperCase(), rfk.name.toLowerCase()])),
