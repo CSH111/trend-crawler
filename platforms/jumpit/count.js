@@ -1,10 +1,12 @@
 import axios from "axios";
 import { pr } from "../../prismaClient.js";
 
-const rawKeywords = await pr.rawKeyword.findMany();
+const rawKeywords = await pr.raw_keywords.findMany({
+  where: { refined_keywords: { is_active: 1 } },
+});
 
 const makeUrlWithPage = (pageN) => {
-  return `https://api.jumpit.co.kr/api/positions?jobCategory=1&jobCategory=2&jobCategory=3&jobCategory=4&jobCategory=16&sort=reg_dt&highlight=false&page=${pageN}`;
+  return `https://api.jumpit.co.kr/api/positions?jobCategory=2&jobCategory=3&jobCategory=4&jobCategory=16&jobCategory=18&jobCategory=16&jobCategory=6&jobCategory=7&jobCategory=19&jobCategory=8&jobCategory=9&jobCategory=22&sort=reg_dt&highlight=false&page=${pageN}`;
 };
 
 const res = await axios.get(makeUrlWithPage(1));
@@ -13,11 +15,14 @@ const pagesToSearch = Array(Math.ceil(jobsCount / 16))
   .fill()
   .map((_, i) => i + 1);
 
-for (let pageNumber of pagesToSearch) {
+// for (let pageNumber of pagesToSearch) {
+for (let pageNumber = 1; 1; pageNumber++) {
+  console.log(`${pageNumber} page started`);
   const getListApiUrl = makeUrlWithPage(pageNumber);
   const res = await axios.get(getListApiUrl);
   const positionDataArr = res.data.result.positions;
   if (positionDataArr.length < 1) {
+    console.log(`search ended at page ${pageNumber}`);
     break;
   }
 
@@ -62,10 +67,10 @@ for (let pageNumber of pagesToSearch) {
   await Promise.all(
     Object.entries(urlKeyObj).map(([url, keywordIds]) => {
       return (async () => {
-        const existing = await pr.jobUrl.findFirst({ where: { url: url } });
+        const existing = await pr.job_urls.findFirst({ where: { url: url } });
         let jobId = existing?.id;
         if (!existing) {
-          const newJob = await pr.jobUrl.create({
+          const newJob = await pr.job_urls.create({
             data: {
               url: url,
               created_at: new Date(),
@@ -76,7 +81,7 @@ for (let pageNumber of pagesToSearch) {
         try {
           await Promise.all(
             keywordIds.map((kid) => {
-              return pr.refinedKeywordsOnJobUrl.create({
+              return pr.refined_keywords_on_job_url.create({
                 data: { job_url_id: jobId, refined_keyword_id: kid },
               });
             })
@@ -90,7 +95,7 @@ for (let pageNumber of pagesToSearch) {
   await Promise.all(
     countsEntries.map(([keywordId, dataObj]) => {
       return (async () => {
-        const result = await pr.keywordCount.findFirst({
+        const result = await pr.keyword_counts.findFirst({
           where: { refined_keyword_id: +keywordId },
           orderBy: { id: "desc" },
         });
@@ -98,12 +103,12 @@ for (let pageNumber of pagesToSearch) {
           !result ||
           result.created_at.toISOString().split("T")[0] !== new Date().toISOString().split("T")[0]
         ) {
-          await pr.keywordCount.create({
+          await pr.keyword_counts.create({
             data: { refined_keyword_id: +keywordId, count: dataObj.count, created_at: new Date() },
           });
           console.log("new count record inserted");
         } else {
-          await pr.keywordCount.update({
+          await pr.keyword_counts.update({
             where: { id: result.id },
             data: { count: result.count + dataObj.count },
           });
