@@ -13,6 +13,7 @@ model job_urls {
   url                         String                        @unique @db.VarChar(50)
   created_at                  DateTime                      @default(now())
   refined_keywords_on_job_url refined_keywords_on_job_url[]
+  url_count_dates             url_count_dates[]
 
   @@fulltext([url])
 }
@@ -106,4 +107,13 @@ model wanted_techs {
   wanted_tech_id                   Int                                @id
   wanted_name                      String                             @default("") @db.VarChar(50)
   refined_keywords_on_wanted_techs refined_keywords_on_wanted_techs[]
+}
+
+model url_count_dates {
+  id         Int      @id @default(autoincrement())
+  job_url_id Int
+  count_date DateTime @db.DateTime(0)
+  job_urls   job_urls @relation(fields: [job_url_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__job_urls")
+
+  @@index([job_url_id], map: "FK__job_urls")
 }

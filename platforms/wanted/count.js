@@ -136,6 +136,12 @@ for (let page = 1; true; page++) {
           });
           jobUrlDataId = newJobUrl.id;
         }
+        try {
+          await pr.url_count_dates.create({
+            data: { job_url_id: jobUrlDataId, count_date: new Date() },
+          });
+        } catch {}
+
         await Promise.all(
           keywordIds.map((kid) => {
             return (async () => {

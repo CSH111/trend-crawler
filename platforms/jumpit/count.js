@@ -79,6 +79,9 @@ for (let pageNumber = 1; 1; pageNumber++) {
           jobId = newJob.id;
         }
         try {
+          await pr.url_count_dates.create({ data: { job_url_id: jobId, count_date: new Date() } });
+        } catch {}
+        try {
           await Promise.all(
             keywordIds.map((kid) => {
               return pr.refined_keywords_on_job_url.create({
