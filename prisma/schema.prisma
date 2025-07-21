@@ -10,11 +10,16 @@ datasource db {
 
 model job_urls {
   id                          Int                           @id @default(autoincrement())
-  url                         String                        @unique @db.VarChar(50)
-  created_at                  DateTime                      @default(now())
+  url                         String                        @db.VarChar(50)
+  platform_id                 Int?
+  report_date_id              Int?
+  platforms                   platforms?                    @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_job_urls_platforms")
+  report_dates                report_dates?                 @relation(fields: [report_date_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_job_urls_report_dates")
   refined_keywords_on_job_url refined_keywords_on_job_url[]
   url_count_dates             url_count_dates[]
 
+  @@index([platform_id], map: "FK_job_urls_platforms")
+  @@index([report_date_id], map: "FK_job_urls_report_dates")
   @@fulltext([url])
 }
 
@@ -22,10 +27,13 @@ model keyword_counts {
   id                 Int              @id @default(autoincrement())
   count              Int
   refined_keyword_id Int
-  created_at         DateTime         @default(now())
+  report_date_id     Int?
+  report_dates       report_dates?    @relation(fields: [report_date_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_keyword_counts_report_dates")
   refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
 
   @@index([refined_keyword_id], map: "keyword_counts_refined_keyword_id_fkey")
+  @@index([report_date_id], map: "FK_keyword_counts_report_dates")
+  @@index([count], map: "count")
 }
 
 model keyword_groups {
@@ -35,10 +43,9 @@ model keyword_groups {
 }
 
 model platforms {
-  id         Int      @id @default(autoincrement())
-  name       String   @db.VarChar(20)
-  last_id    String   @db.VarChar(20)
-  updated_at DateTime @default(now())
+  id       Int        @id @default(autoincrement())
+  name     String     @db.VarChar(20)
+  job_urls job_urls[]
 }
 
 model raw_keywords {
@@ -88,19 +95,22 @@ model refined_keywords_on_keyword_groups {
 }
 
 model refined_keywords_on_wanted_techs {
-  id                 Int               @id @default(autoincrement())
-  wanted_tech_id     Int?
-  refined_keyword_id Int?
-  refined_keywords   refined_keywords? @relation(fields: [refined_keyword_id], references: [id], onDelete: Restrict)
-  wanted_techs       wanted_techs?     @relation(fields: [wanted_tech_id], references: [wanted_tech_id], onDelete: Restrict, map: "refined_keywords_on_wanted_techs_wanted_tech_wanted_tech_id_fkey")
+  id                 Int              @id @default(autoincrement())
+  wanted_tech_id     Int
+  refined_keyword_id Int
+  refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
+  wanted_techs       wanted_techs     @relation(fields: [wanted_tech_id], references: [wanted_tech_id], map: "refined_keywords_on_wanted_techs_wanted_tech_wanted_tech_id_fkey")
 
   @@index([refined_keyword_id], map: "refined_keywords_on_wanted_techs_refined_keyword_id_fkey")
   @@index([wanted_tech_id], map: "refined_keywords_on_wanted_techs_wanted_tech_wanted_tech_id_fkey")
 }
 
 model report_dates {
-  id   Int      @id @default(autoincrement())
-  date DateTime @db.Date
+  id             Int              @id @default(autoincrement())
+  date           DateTime         @db.Date
+  is_active      Int?             @default(1) @db.TinyInt
+  job_urls       job_urls[]
+  keyword_counts keyword_counts[]
 }
 
 model wanted_techs {

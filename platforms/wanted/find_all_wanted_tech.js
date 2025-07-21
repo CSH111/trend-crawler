@@ -21,8 +21,9 @@ for (let [idx, sk] of apbComb.entries()) {
     `https://www.wanted.co.kr/api/v4/tags/autocomplete?${Date.now()}&kinds=SKILL&keyword=${sk}`
   );
   for (let r of res.data.results) {
+    console.log("r: ", r);
     try {
-      await pr.wanted_techs.create({ data: { wanted_tech_id: r.id, wanted_name: r.title } });
+      // await pr.wanted_techs.create({ data: { wanted_tech_id: r.id, wanted_name: r.title } });
     } catch {
       continue;
     }

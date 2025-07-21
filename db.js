@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 export const zzz = 1234;
 export const db = mysql.createConnection({
-  host: "localhost",
+  host: process.env.DATABASE_URL,
   user: "root",
   password: process.env.DB_PW,
   database: "keyword_db",
