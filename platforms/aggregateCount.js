@@ -15,7 +15,7 @@ console.log("process.argv: ", process.argv);
     by: ["refined_keyword_id"],
     where: {
       job_urls: {
-        report_date_id: 2,
+        report_date_id: Number(reportId),
       },
     },
     _count: {

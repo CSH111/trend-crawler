@@ -16,8 +16,8 @@ model job_urls {
   platforms                   platforms?                    @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_job_urls_platforms")
   report_dates                report_dates?                 @relation(fields: [report_date_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_job_urls_report_dates")
   refined_keywords_on_job_url refined_keywords_on_job_url[]
-  url_count_dates             url_count_dates[]
 
+  @@unique([url, report_date_id], map: "url_report_date_id")
   @@index([platform_id], map: "FK_job_urls_platforms")
   @@index([report_date_id], map: "FK_job_urls_report_dates")
   @@fulltext([url])
@@ -76,7 +76,7 @@ model refined_keywords_on_job_url {
   id                 Int              @id @default(autoincrement())
   refined_keyword_id Int
   job_url_id         Int
-  job_urls           job_urls         @relation(fields: [job_url_id], references: [id])
+  job_urls           job_urls         @relation(fields: [job_url_id], references: [id], onUpdate: NoAction)
   refined_keywords   refined_keywords @relation(fields: [refined_keyword_id], references: [id])
 
   @@unique([refined_keyword_id, job_url_id])
@@ -123,7 +123,6 @@ model url_count_dates {
   id         Int      @id @default(autoincrement())
   job_url_id Int
   count_date DateTime @db.DateTime(0)
-  job_urls   job_urls @relation(fields: [job_url_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__job_urls")
 
   @@index([job_url_id], map: "FK__job_urls")
 }

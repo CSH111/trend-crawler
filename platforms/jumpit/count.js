@@ -37,38 +37,45 @@ for (let pageNumber = 1; 1; pageNumber++) {
     break;
   }
 
-  if (pageNumber > 1) {
-    console.log("stop");
-    break;
-  }
+  // if (pageNumber > 1) {
+  //   console.log("stop");
+  //   break;
+  // }
 
   const countsToAdd = {};
 
-  await Promise.all(
+  await Promise.allSettled(
     positionDataArr.map(async (pd) => {
-      const urlData = await pr.job_urls.create({
-        data: {
-          url: `https://www.jumpit.co.kr/position/${pd.id}`,
-          platform_id: 3,
-          report_date_id: +reportId,
-        },
-      });
-      const urlId = urlData.id;
-      const rkIdsToInsert = new Set();
-      rawKeywords.forEach((keyword) => {
-        pd.techStacks.some((st) => {
-          if (st === keyword.name) {
-            // TODO: 접두 접미 금칙어 적용
-            rkIdsToInsert.add(keyword.refined_keyword_id);
-            return true;
-          }
+      try {
+        const urlData = await pr.job_urls.create({
+          data: {
+            url: `https://www.jumpit.co.kr/position/${pd.id}`,
+            platform_id: 3,
+            report_date_id: +reportId,
+          },
         });
-      });
-      await pr.refined_keywords_on_job_url.createMany({
-        data: Array.from(rkIdsToInsert).map((rkId) => {
-          return { job_url_id: urlId, refined_keyword_id: rkId };
-        }),
-      });
+
+        const urlId = urlData.id;
+        const rkIdsToInsert = new Set();
+        rawKeywords.forEach((keyword) => {
+          pd.techStacks.some((st) => {
+            if (st === keyword.name) {
+              // TODO: 접두 접미 금칙어 적용
+              rkIdsToInsert.add(keyword.refined_keyword_id);
+              return true;
+            }
+          });
+        });
+        await pr.refined_keywords_on_job_url.createMany({
+          skipDuplicates: true,
+          data: Array.from(rkIdsToInsert).map((rkId) => {
+            return { job_url_id: urlId, refined_keyword_id: rkId };
+          }),
+        });
+      } catch (e) {
+        console.log("e: ", e);
+        return;
+      }
     })
   );
 

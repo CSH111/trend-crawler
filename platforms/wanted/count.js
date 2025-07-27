@@ -28,7 +28,7 @@ for (let page = 1; true; page++) {
     break;
   }
   // if (page > 5000) {
-  if (page > 1) {
+  if (page > 5000) {
     console.log("page over 5000");
     break;
   }
@@ -44,7 +44,7 @@ for (let page = 1; true; page++) {
 
   const countngObj = {}; // {[refined_keyword_id]:count}
   const jobUrlObj = {}; // {[wanted site url job id]: {refined_keyword_id}}
-  await Promise.all(
+  await Promise.allSettled(
     jobInfoList.map(({ jobId, skillTags }) => {
       return (async () => {
         const result = await axios.get(`https://www.wanted.co.kr/wd/${jobId}`);
@@ -104,88 +104,24 @@ for (let page = 1; true; page++) {
       })();
     })
   );
-  console.log("jobUrlObj: ", jobUrlObj);
   for (let wantedJobId of Object.keys(jobUrlObj)) {
-    const urlToInsert = `https://www.wanted.co.kr/wd/${wantedJobId}`;
-    const result = await pr.job_urls.create({
-      data: { url: urlToInsert, platform_id: 2, report_date_id: reportId },
-    });
-    const job_url_id = result.id;
-    const refinedKeyrodIds = Array.from(jobUrlObj[wantedJobId]);
-    await pr.refined_keywords_on_job_url.createMany({
-      data: refinedKeyrodIds.map((rkid) => {
-        return { job_url_id: job_url_id, refined_keyword_id: rkid };
-      }),
-    });
+    try {
+      const urlToInsert = `https://www.wanted.co.kr/wd/${wantedJobId}`;
+      const result = await pr.job_urls.create({
+        data: { url: urlToInsert, platform_id: 2, report_date_id: reportId },
+      });
+      const job_url_id = result.id;
+      const refinedKeyrodIds = Array.from(jobUrlObj[wantedJobId]);
+      await pr.refined_keywords_on_job_url.createMany({
+        skipDuplicates: true,
+        data: refinedKeyrodIds.map((rkid) => {
+          return { job_url_id: job_url_id, refined_keyword_id: rkid };
+        }),
+      });
+    } catch (error) {
+      console.log("error: ", error);
+      continue;
+    }
   }
-
-  // create counts
-  // await Promise.all(
-  //   Object.entries(countngObj).map(([keywordId, count]) => {
-  //     return (async () => {
-  //       const result = await pr.keyword_counts.findFirst({
-  //         where: { refined_keyword_id: +keywordId },
-  //         orderBy: { id: "desc" },
-  //       });
-  //       if (
-  //         !result ||
-  //         result.created_at.toISOString().split("T")[0] !== new Date().toISOString().split("T")[0]
-  //       ) {
-  //         await pr.keyword_counts.create({
-  //           data: { refined_keyword_id: +keywordId, count: count, created_at: new Date() },
-  //         });
-  //         console.log(`new count record inserted. refinedKid(${keywordId})`);
-  //       } else {
-  //         await pr.keyword_counts.update({
-  //           where: { id: result.id },
-  //           data: { count: result.count + count },
-  //         });
-  //         console.log(`count record updated refinedKid(${keywordId})`);
-  //       }
-  //     })();
-  //   })
-  // );
-
-  // // //create job urls
-  // await Promise.all(
-  //   Object.entries(jobUrlObj).map(([urlId, keywordIdSet]) => {
-  //     const keywordIds = Array.from(keywordIdSet);
-  //     return (async () => {
-  //       let jobUrlDataId;
-  //       const existing = await pr.job_urls.findFirst({
-  //         where: { url: `https://www.wanted.co.kr/wd/${urlId}` },
-  //       });
-  //       if (existing) {
-  //         jobUrlDataId = existing.id;
-  //       } else {
-  //         const newJobUrl = await pr.job_urls.create({
-  //           data: {
-  //             platform_id: 2,
-  //             created_at: new Date(),
-  //             url: `https://www.wanted.co.kr/wd/${urlId}`,
-  //           },
-  //         });
-  //         jobUrlDataId = newJobUrl.id;
-  //       }
-  //       try {
-  //         await pr.url_count_dates.create({
-  //           data: { job_url_id: jobUrlDataId, count_date: new Date() },
-  //         });
-  //       } catch {}
-
-  //       await Promise.all(
-  //         keywordIds.map((kid) => {
-  //           return (async () => {
-  //             try {
-  //               await pr.refined_keywords_on_job_url.create({
-  //                 data: { job_url_id: +jobUrlDataId, refined_keyword_id: +kid },
-  //               });
-  //             } catch {}
-  //           })();
-  //         })
-  //       );
-  //     })();
-  //   })
-  // );
 }
 console.timeEnd("total");
